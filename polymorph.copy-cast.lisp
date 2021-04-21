@@ -6,7 +6,12 @@
 ;; TODO casts to strings -- should probably try to cast stuff to characters as well? But how?
 ;; There are at least 2 possibilities -- 1 turns into #\1 or into (code-char 1).
 (defun %form-type (form &optional env)
-  (adhoc-polymorphic-functions::form-type form env))
+  (if (constantp form env)
+      (let ((val (eval form))) ;;need custom eval that defaults to sb-ext:eval-in-lexenv here)
+        (if (typep val '(or number character symbol))
+            (values `(eql ,val) t)
+            (values (type-of val) t)))
+      (adhoc-polymorphic-functions::form-type form env)))
 
 
 (define-polymorphic-function cast (object type):overwrite t
