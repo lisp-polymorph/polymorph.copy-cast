@@ -5,4 +5,5 @@
   (:local-nicknames (:cm :sandalphon.compiler-macro)
                     (:mop :closer-mop))
   (:export #:deep-copy
+	   #:shallow-copy
            #:cast))
