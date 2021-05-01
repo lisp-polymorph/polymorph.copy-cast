@@ -5,13 +5,14 @@
 
 ;; TODO casts to strings -- should probably try to cast stuff to characters as well? But how?
 ;; There are at least 2 possibilities -- 1 turns into #\1 or into (code-char 1).
-(defun %form-type (form &optional env)
-  (if (constantp form env)
-      (let ((val (eval form))) ;;need custom eval that defaults to sb-ext:eval-in-lexenv here)
-        (if (typep val '(or number character symbol))
-            (values `(eql ,val) t)
-            (values (type-of val) t)))
-      (adhoc-polymorphic-functions::form-type form env)))
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun %form-type (form &optional env)
+    (if (constantp form env)
+        (let ((val (eval form))) ;;need custom eval that defaults to sb-ext:eval-in-lexenv here)
+          (if (typep val '(or number character symbol))
+              (values `(eql ,val) t)
+              (values (type-of val) t)))
+        (adhoc-polymorphic-functions::form-type form env))))
 
 
 (define-polymorphic-function cast (object type):overwrite t
@@ -23,10 +24,14 @@
 (defpolymorph cast ((object number) (type (member number complex real float
                                                   single-float double-float
                                                   long-float short-float ratio
-                                                  rational integer fixnum
-                                                  bignum))) number
+                                                  rational bignum)))
+  number
   (coerce object type))
 
+
+(defpolymorph cast ((object number) (type (eql integer))) number
+  (declare (ignorable type))
+  (nth-value 0 (truncate object)))
 
 (defpolymorph cast ((object number) (type list)) number
   (coerce object type))
@@ -94,7 +99,7 @@
 
 
 ;;Arrays
-(defpolymorph (deep-copy :inline t) ((o simple-array)) (values simple-array &optional)
+(defpolymorph (deep-copy :inline t) ((o simple-array)) simple-array
   (let ((r (make-array (array-dimensions o)
                        :element-type (array-element-type o))))
     (loop :for i :below (array-total-size o)
@@ -122,7 +127,7 @@
                                      (deep-copy (the ,o-elt (row-major-aref ,o i))))))
                 r)))))
 
-(defpolymorph (deep-copy :inline t) ((o vector)) (values vector &optional)
+(defpolymorph (deep-copy :inline t) ((o vector)) vector
   ;; Could consider more options like displacements
   (let ((r (make-array (array-total-size o)
                        :element-type (array-element-type o)
@@ -155,7 +160,7 @@
                                      (deep-copy (the ,o-elt (aref ,o i))))))
                 r)))))
 
-(defpolymorph (deep-copy :inline t) ((o array)) (values array &optional)
+(defpolymorph (deep-copy :inline t) ((o array)) array
   (let ((r (make-array (array-dimensions o)
                        :element-type (array-element-type o)
                        :adjustable t)))
@@ -187,7 +192,7 @@
 
 
 ;;Cons (and lists? unsure)
-(defpolymorph deep-copy ((o cons)) (values cons &optional)
+(defpolymorph deep-copy ((o cons)) cons
   (cons (deep-copy (car o)) (deep-copy (cdr o))))
 
 (defpolymorph-compiler-macro deep-copy (cons) (o &environment env)
@@ -257,7 +262,7 @@
 
 
 ;;Arrays
-(defpolymorph (shallow-copy :inline t) ((o simple-array)) (values simple-array &optional)
+(defpolymorph (shallow-copy :inline t) ((o simple-array)) simple-array
   (let ((r (make-array (array-dimensions o)
                        :element-type (array-element-type o))))
     (loop :for i :below (array-total-size o)
@@ -285,7 +290,7 @@
                                      (row-major-aref ,o i))))
                 r)))))
 
-(defpolymorph (shallow-copy :inline t) ((o vector)) (values vector &optional)
+(defpolymorph (shallow-copy :inline t) ((o vector)) vector
   ;; Could consider more options like displacements
   (let ((r (make-array (array-total-size o)
                        :element-type (array-element-type o)
@@ -318,7 +323,7 @@
                                      (aref ,o i))))
                 r)))))
 
-(defpolymorph (shallow-copy :inline t) ((o array)) (values array &optional)
+(defpolymorph (shallow-copy :inline t) ((o array)) array
   (let ((r (make-array (array-dimensions o)
                        :element-type (array-element-type o)
                        :adjustable t)))
@@ -350,7 +355,7 @@
 
 
 ;;Cons (and lists? unsure)
-(defpolymorph shallow-copy ((o cons)) (values cons &optional)
+(defpolymorph shallow-copy ((o cons)) cons
   (cons (car o) (cdr o)))
 
 
