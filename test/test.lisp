@@ -26,6 +26,13 @@
   (run! 'polymorph.copy-cast))
 
 
+;;; Definitions Used by Tests
+
+(defstruct custom-object
+  slot1
+  slot2)
+
+
 ;;; CAST tests
 
 (test cast-number
@@ -366,3 +373,46 @@
 	   never (eq (gethash key table) value))
 
 	"Copied hash-table not a deep copy.")))
+
+
+;;;; Structures
+
+(test shallow-copy-struct
+  "Test SHALLOW-COPY on structures."
+
+  (let* ((struct (make-custom-object :slot1 '("1" "2" "3") :slot2 #("4" "5" "6")))
+	 (copy (shallow-copy struct)))
+
+    (is (not (eq struct copy))
+	"Structure not copied.")
+
+    (is (equalp (make-custom-object :slot1 '("1" "2" "3") :slot2 #("4" "5" "6")) copy))
+
+    (is (eq (custom-object-slot1 copy) (custom-object-slot1 struct))
+	"Value of SLOT1 copied but a shallow copy was expected.")
+
+    (is (eq (custom-object-slot2 copy) (custom-object-slot2 struct))
+	"Value of SLOT2 copied but a shallow copy was expected.")))
+
+(test deep-copy-struct
+  "Test DEEP-COPY on structures."
+
+  (let* ((struct (make-custom-object :slot1 '("1" "2" "3") :slot2 #("4" "5" "6")))
+	 (copy (deep-copy struct)))
+
+    (is (not (eq struct copy))
+	"Structure not copied.")
+
+    (is (equalp (make-custom-object :slot1 '("1" "2" "3") :slot2 #("4" "5" "6")) copy))
+
+    (is (not (eq (custom-object-slot1 copy) (custom-object-slot1 struct)))
+	"Value of SLOT1 not copied. A deep copy was expected.")
+
+    (is (not (eq (custom-object-slot2 copy) (custom-object-slot2 struct)))
+	"Value of SLOT2 not copied. A deep copy was expected.")
+
+    (is (notany #'eq (custom-object-slot1 copy) (custom-object-slot1 struct))
+	"SLOT1 not deep copied")
+
+    (is (notany #'eq (custom-object-slot2 copy) (custom-object-slot2 struct))
+	"SLOT2 not deep copied")))
