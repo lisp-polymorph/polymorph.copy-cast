@@ -12,7 +12,7 @@
           (if (typep val '(or number character symbol))
               (values `(eql ,val) t)
               (values (type-of val) t)))
-        (adhoc-polymorphic-functions::form-type form env))))
+        (adhoc-polymorphic-functions::primary-form-type form env))))
 
 
 (define-polymorphic-function cast (object type):overwrite t
