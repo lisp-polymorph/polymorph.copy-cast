@@ -6,13 +6,13 @@
     :license  "MIT"
     :version "0.5"
     :serial t
-    :depends-on (#:adhoc-polymorphic-functions #:compiler-macro)
+    :depends-on (#:adhoc-polymorphic-functions #:compiler-macro #:polymorph.utility)
     :components ((:module
-		  "src"
-		  :serial t
-		  :components
-		  ((:file "package")
-                   (:file "polymorph.copy-cast"))))
+                  "src"
+                  :serial t
+                  :components
+                   ((:file "package")
+                    (:file "polymorph.copy-cast"))))
 
   :in-order-to ((asdf:test-op (asdf:test-op :polymorph.copy-cast/test))))
 
@@ -22,10 +22,10 @@
   :serial t
   :depends-on (#:polymorph.copy-cast #:fiveam)
   :components ((:module
-		"test"
-		:serial t
-		:components
-		((:file "test"))))
+                "test"
+                :serial t
+                :components
+                ((:file "test"))))
 
   :perform (test-op (o s)
-		    (uiop:symbol-call '#:polymorph.copy-cast/test '#:test-polymorph.copy-cast)))
+             (uiop:symbol-call '#:polymorph.copy-cast/test '#:test-polymorph.copy-cast)))
