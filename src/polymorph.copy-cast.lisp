@@ -6,7 +6,7 @@
 ;; TODO casts to strings -- should probably try to cast stuff to characters as well? But how?
 ;; There are at least 2 possibilities -- 1 turns into #\1 or into (code-char 1).
 (define-polymorphic-function cast (object type):overwrite t
-                             :documentation "Cast an object to a specified type. Type should always be a symbol.
+  :documentation "Cast an object to a specified type. Type should always be a symbol.
   Non-mutating, i.e. always return a new object.")
 
 
@@ -31,14 +31,14 @@
                                                   float single-float double-float
                                                   long-float short-float ratio rational
                                                   integer fixnum bignum))
-    (object type)
+  (object type)
   `(the ,(if (constantp type) (eval type) 'number) (coerce ,object ,type)))
 
 
 
 (defpolymorph cast ((object list) (type (eql boolean))) boolean
-  (declare (ignorable type))
-  (not (null object)))
+              (declare (ignorable type))
+              (not (null object)))
 
 
 (defpolymorph cast ((object (mod 1114112)) (type (eql character))) character
@@ -55,8 +55,8 @@
   (cl:= object 1))
 
 (defpolymorph cast ((object boolean) (type (eql bit))) bit
-              (declare (ignorable type))
-              (if object 1 0))
+  (declare (ignorable type))
+  (if object 1 0))
 
 
 
@@ -88,31 +88,34 @@
   o)
 
 
+
 ;;Arrays
 (defpolymorph (deep-copy :inline t) ((o simple-array)) simple-array
-  (let ((r (make-array (array-dimensions o)
-                       :element-type (array-element-type o))))
+  (let ((out (make-array (array-dimensions o)
+                         :element-type (array-element-type o))))
     (loop :for i :below (array-total-size o)
-          :do (setf (row-major-aref r i)
+          :do (setf (row-major-aref out i)
                     (deep-copy (row-major-aref o i))))
-    r))
+    out))
 
-(defpolymorph-compiler-macro deep-copy (simple-array) (o &environment env)
+(defpolymorph-compiler-macro deep-copy (simple-array)
+    (o &environment env)
   (with-array-info (o-elt o-dim) o env
-    (let ((formtype (%form-type o env)))
-      `(the ,formtype
-            ,(once-only (o)
-               `(let ((r (make-array ,(if (or (constantp o-dim env)
-                                             (and (not (eql 'cl:* o-dim)) (every (lambda (x) (constantp x env)) o-dim)))
-                                          `'(,@o-dim)
-                                          `(array-dimensions ,o))
-                                     :element-type ',(if (eql t o-elt) `(array-element-type ,o) o-elt))))
-                  (declare (type ,formtype ,o))
-                  (loop :for i :below (array-total-size ,o)
-                        :do (setf (row-major-aref r i)
-                                  (the ,o-elt
-                                       (deep-copy (the ,o-elt (row-major-aref ,o i))))))
-                  r))))))
+    (let ((formtype (%form-type o env))
+          (i (gensym "I")))
+      (let ((out (gensym "OUT")))
+        (once-only (o)
+           `(the ,formtype
+                 (let ((,out (make-array ,(if (or (constantp o-dim env)
+                                                 (and (not (eql 'cl:* o-dim)) (every (lambda (x) (constantp x env)) o-dim)))
+                                           `(quote ,o-dim)
+                                           `(array-dimensions ,o))
+                                        :element-type ',o-elt)))
+                   (declare (type ,formtype ,out))
+                   (loop :for ,i :below (array-total-size ,o)
+                    :do (setf (row-major-aref ,out ,i)
+                             (deep-copy (the ,o-elt (row-major-aref ,o ,i)))))
+                   ,out)))))))
 
 (defpolymorph (deep-copy :inline t) ((o vector)) vector
   ;; Could consider more options like displacements
@@ -230,10 +233,9 @@
                                   (deep-copy (the ,slot-type ,value)))))))))
 
 
-
 ;;Shallow copy
 (defpolymorph shallow-copy ((o number)) number
-  o)
+              o)
 
 (defpolymorph shallow-copy ((o character)) character
   o)
