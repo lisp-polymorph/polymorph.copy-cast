@@ -179,13 +179,16 @@
 (defpolymorph deep-copy ((o cons)) cons
   (cons (deep-copy (car o)) (deep-copy (cdr o))))
 
+(defpolymorph deep-copy ((o list)) list
+  (mapcar #'deep-copy o))
+
+
 (defpolymorph-compiler-macro deep-copy (cons) (o &environment env)
   (let ((type (%form-type o env)))
     `(the ,type
           ,(once-only (o)
              `(cons (deep-copy (car ,o))
                     (deep-copy (cdr ,o)))))))
-
 
 ;; Hash-table
 (defpolymorph deep-copy ((o hash-table)) (values hash-table &optional)

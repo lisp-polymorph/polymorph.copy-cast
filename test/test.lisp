@@ -2,13 +2,13 @@
 
 (defpackage #:polymorph.copy-cast/test
   (:use #:cl
-	#:fiveam
-	#:polymorph.copy-cast)
+        #:fiveam
+        #:polymorph.copy-cast)
 
   (:import-from #:alexandria
-		#:alist-hash-table
-		#:hash-table-alist
-		#:set-equal)
+    #:alist-hash-table
+    #:hash-table-alist
+    #:set-equal)
 
   (:export #:polymorph.copy-cast
            #:test-polymorph.copy-cast))
@@ -73,7 +73,7 @@
     (t (cast 1 'boolean))
     (nil (cast 0 'boolean)))
 
-  (signals adhoc-polymorphic-functions::no-applicable-polymorph
+  (signals polymorphic-functions::no-applicable-polymorph
     (cast 2 'boolean)))
 
 (test cast-boolean->bit
@@ -83,7 +83,7 @@
     (1 (cast t 'bit))
     (0 (cast nil 'bit)))
 
-  (signals adhoc-polymorphic-functions::no-applicable-polymorph
+  (signals polymorphic-functions::no-applicable-polymorph
     (cast '(1 2 3) 'bit)))
 
 
@@ -107,7 +107,7 @@
 
 
 ;;;; Lists
-
+#||
 (test shallow-copy-list
   "Test SHALLOW-COPY on lists."
 
@@ -135,7 +135,7 @@
 
     (is (notany #'eq list copy)
 	"Copied list is not a deep copy.")))
-
+||#
 
 ;;;; Vectors/Simple Arrays
 
