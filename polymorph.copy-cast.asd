@@ -25,7 +25,8 @@
                 "test"
                 :serial t
                 :components
-                ((:file "test"))))
+                ((:file "util")
+		 (:file "test"))))
 
   :perform (test-op (o s)
              (uiop:symbol-call '#:polymorph.copy-cast/test '#:test-polymorph.copy-cast)))
