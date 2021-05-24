@@ -217,23 +217,27 @@
                  :appending `(,(intern (symbol-name name) :keyword)
                               ,(deep-copy value))))))
 
-(defpolymorph-compiler-macro deep-copy (structure-object) (o &environment env)
-  ;; TODO: Handle the case when TYPE is something complicated: "satisfies"
+(defpolymorph-compiler-macro deep-copy (structure-object) (&whole form o &environment env)
   (let* ((type        (%form-type o env))
          (initializer (find-symbol (concatenate 'string
                                                 "MAKE-"
                                                 (symbol-name type))))
          (slots (mop:class-slots (find-class type))))
-    `(the ,type
-          (let ((o ,o))
-            (declare (type ,type o))
-            (,initializer
-             ,@(loop :for slot :in slots
-                     :for name := (mop:slot-definition-name slot)
-                     :for slot-type := (mop:slot-definition-type slot)
-                     :for value := `(slot-value o ',name)
-                     :appending `(,(intern (symbol-name name) :keyword)
-                                  (deep-copy (the ,slot-type ,value)))))))))
+
+    (if (not (and (symbolp type)
+                  (subtypep type 'structure-object env)))
+        form
+
+        `(the ,type
+              (let ((o ,o))
+                (declare (type ,type o))
+                (,initializer
+                 ,@(loop :for slot :in slots
+                      :for name := (mop:slot-definition-name slot)
+                      :for slot-type := (mop:slot-definition-type slot)
+                      :for value := `(slot-value o ',name)
+                      :appending `(,(intern (symbol-name name) :keyword)
+                                    (deep-copy (the ,slot-type ,value))))))))))
 
 
 ;;Shallow copy
@@ -356,20 +360,25 @@
                  :appending `(,(intern (symbol-name name) :keyword)
                               ,value)))))
 
-(defpolymorph-compiler-macro shallow-copy (structure-object) (o &environment env)
+(defpolymorph-compiler-macro shallow-copy (structure-object) (&whole form o &environment env)
   ;; TODO: Handle the case when TYPE is something complicated: "satisfies"
   (let* ((type        (%form-type o env))
          (initializer (find-symbol (concatenate 'string
                                                 "MAKE-"
                                                 (symbol-name type))))
          (slots (mop:class-slots (find-class type))))
-    `(the ,type
-          (let ((o ,o))
-            (declare (type ,type o))
-            (,initializer
-             ,@(loop :for slot :in slots
-                     :for name := (mop:slot-definition-name slot)
-                     :for slot-type := (mop:slot-definition-type slot)
-                     :for value := `(slot-value o ',name)
-                     :appending `(,(intern (symbol-name name) :keyword)
-                                  (the ,slot-type ,value))))))))
+
+    (if (not (and (symbolp type)
+                  (subtypep type 'structure-object env)))
+        form
+
+        `(the ,type
+              (let ((o ,o))
+                (declare (type ,type o))
+                (,initializer
+                 ,@(loop :for slot :in slots
+                      :for name := (mop:slot-definition-name slot)
+                      :for slot-type := (mop:slot-definition-type slot)
+                      :for value := `(slot-value o ',name)
+                      :appending `(,(intern (symbol-name name) :keyword)
+                                    (the ,slot-type ,value)))))))))
