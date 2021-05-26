@@ -133,8 +133,7 @@
     (let ((o-type (%form-type o env)))
       `(the ,o-type
             ,(once-only (o)
-               `(let ((r (make-array ,(if (or (constantp o-dim env)
-                                             (and (not (eql 'cl:* o-dim)) (every (lambda (x) (constantp x env)) o-dim)))
+               `(let ((r (make-array ,(if (constant-array-dimensions-p o-dim env)
                                           `'(,@o-dim)
                                           `(array-dimensions ,o))
                                      :element-type ,(if (eql t o-elt) `(array-element-type ,o) `',o-elt)
@@ -293,8 +292,7 @@
     (let ((o-type (%form-type o env)))
       `(the ,o-type
             ,(once-only (o)
-               `(let ((r (make-array ,(if (or (constantp o-dim env)
-                                             (and (not (eql 'cl:* o-dim)) (every (lambda (x) (constantp x env)) o-dim)))
+               `(let ((r (make-array ,(if (constant-array-dimensions-p o-dim env)
                                           `'(,@o-dim)
                                           `(array-dimensions ,o))
                                      :element-type ,(if (eql t o-elt) `(array-element-type ,o) `',o-elt)
