@@ -11,4 +11,4 @@ Casts an object to a specified type. Type should always be a symbol. Non-mutatin
 (define-polymorphic-function deep-copy (object))
 (define-polymorphic-function shallow-copy (object))
 ```
-Deep-copy copies object recursively, while shallow-copy only copies the topmost container, leaving insides as references. Returns object of precisely the same type as the original one.
+Deep-copy copies the object recursively, while shallow-copy only copies the topmost container, leaving the insides as references. Returns object of precisely the same type as the original one.
