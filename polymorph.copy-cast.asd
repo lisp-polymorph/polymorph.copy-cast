@@ -6,7 +6,7 @@
     :license  "MIT"
     :version "0.5"
     :serial t
-    :depends-on (#:compiler-macro #:polymorph.utility)
+    :depends-on (#:compiler-macro #:polymorphic-functions #:introspect-ctype)
     :components ((:module
                   "src"
                   :serial t
