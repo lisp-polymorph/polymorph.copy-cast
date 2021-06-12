@@ -100,7 +100,7 @@
 
 (defpolymorph-compiler-macro deep-copy (simple-array)
     (&whole form o &environment env)
-  (with-type-info (_ (array-type o-elt o-dim) env) o
+  (with-type-info (_ (array-type &optional o-elt o-dim) env) o
     (when-types ((array-type array)) form
       (let ((formtype (with-type-info (type () env) o type))
             (i (gensym "I")))
@@ -130,7 +130,7 @@
     r))
 
 (defpolymorph-compiler-macro deep-copy (vector) (&whole form o &environment env)
-  (with-type-info (_ (array-type o-elt o-dim) env) o
+  (with-type-info (_ (array-type &optional o-elt o-dim) env) o
     (when-types ((array-type array)) form
       (with-type-info (o-type () env) o
         `(the ,o-type
@@ -158,7 +158,7 @@
     r))
 
 (defpolymorph-compiler-macro deep-copy (array) (&whole form o &environment env)
-  (with-type-info (_ (array-type o-elt o-dim) env) o
+  (with-type-info (_ (array-type &optional o-elt o-dim) env) o
     (when-types ((array-type array)) form
       (with-type-info (o-type () env) o
         `(the ,o-type
@@ -263,7 +263,7 @@
     r))
 
 (defpolymorph-compiler-macro shallow-copy (simple-array) (&whole form o &environment env)
-  (with-type-info (_ (array-type o-elt o-dim) env) o
+  (with-type-info (_ (array-type &optional o-elt o-dim) env) o
     (when-types ((array-type array)) form
       (with-type-info (o-type () env) o
         `(the ,o-type
@@ -292,7 +292,7 @@
     r))
 
 (defpolymorph-compiler-macro shallow-copy (vector) (&whole form o &environment env)
-  (with-type-info (_ (array-type o-elt o-dim) env) o
+  (with-type-info (_ (array-type &optional o-elt o-dim) env) o
     (when-types ((array-type array)) form
       (with-type-info (o-type () env) o
         `(the ,o-type
@@ -320,7 +320,7 @@
     r))
 
 (defpolymorph-compiler-macro shallow-copy (array) (&whole form o &environment env)
-  (with-type-info (_ (array-type o-elt o-dim) env) o
+  (with-type-info (_ (array-type &optional o-elt o-dim) env) o
     (when-types ((array-type array)) form
       (with-type-info (o-type () env) o
         `(the ,o-type
