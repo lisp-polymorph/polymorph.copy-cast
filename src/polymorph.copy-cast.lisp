@@ -208,38 +208,13 @@
 (defpolymorph (deep-copy :inline t) ((o structure-object))
     (values structure-object &optional)
   (let* ((type        (type-of o))
-         (initializer (find-symbol (concatenate 'string
-                                                "MAKE-"
-                                                (symbol-name type))))
-         (slots (mop:class-slots (find-class type))))
-    (apply initializer
-           (loop :for slot :in slots
-                 :for name := (mop:slot-definition-name slot)
-                 :for value := (slot-value o name)
-                 :appending `(,(intern (symbol-name name) :keyword)
-                              ,(deep-copy value))))))
-
-(defpolymorph-compiler-macro deep-copy (structure-object) (&whole form o &environment env)
-  (with-type-info (type () env) o
-    (let* ((initializer (find-symbol (concatenate 'string
-                                                  "MAKE-"
-                                                  (symbol-name type))))
-           (slots (mop:class-slots (find-class type))))
-
-      (if (not (and (symbolp type)
-                    (subtypep type 'structure-object env)))
-          form
-
-          `(the ,type
-                (let ((o ,o))
-                  (declare (type ,type o))
-                  (,initializer
-                   ,@(loop :for slot :in slots
-                        :for name := (mop:slot-definition-name slot)
-                        :for slot-type := (mop:slot-definition-type slot)
-                        :for value := `(slot-value o ',name)
-                        :appending `(,(intern (symbol-name name) :keyword)
-                                      (deep-copy (the ,slot-type ,value)))))))))))
+         (slots (mop:class-slots (find-class type)))
+         (copy (copy-structure o)))
+    (loop :for slot :in slots
+          :for slot-name := (closer-mop:slot-definition-name slot)
+          :do (setf (slot-value copy slot-name)
+                    (deep-copy (slot-value copy slot-name))))
+    copy))
 
 
 ;;Shallow copy
@@ -350,39 +325,7 @@
 
 
 ;; Structs
+;; FIXME Inheritance problem
 (defpolymorph (shallow-copy :inline t) ((o structure-object))
     (values structure-object &optional)
-  (let* ((type        (type-of o))
-         (initializer (find-symbol (concatenate 'string
-                                                "MAKE-"
-                                                (symbol-name type))))
-         (slots (mop:class-slots (find-class type))))
-    (apply initializer
-           (loop :for slot :in slots
-                 :for name := (mop:slot-definition-name slot)
-                 :for value := (slot-value o name)
-                 :appending `(,(intern (symbol-name name) :keyword)
-                              ,value)))))
-
-(defpolymorph-compiler-macro shallow-copy (structure-object) (&whole form o &environment env)
-  ;; TODO: Handle the case when TYPE is something complicated: "satisfies"
-  (with-type-info (type () env) o
-    (let* ((initializer (find-symbol (concatenate 'string
-                                                  "MAKE-"
-                                                  (symbol-name type))))
-           (slots (mop:class-slots (find-class type))))
-
-      (if (not (and (symbolp type)
-                    (subtypep type 'structure-object env)))
-          form
-
-          `(the ,type
-                (let ((o ,o))
-                  (declare (type ,type o))
-                  (,initializer
-                   ,@(loop :for slot :in slots
-                        :for name := (mop:slot-definition-name slot)
-                        :for slot-type := (mop:slot-definition-type slot)
-                        :for value := `(slot-value o ',name)
-                        :appending `(,(intern (symbol-name name) :keyword)
-                                      (the ,slot-type ,value))))))))))
+  (copy-structure o))
