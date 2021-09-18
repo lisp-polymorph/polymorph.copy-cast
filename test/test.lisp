@@ -21,7 +21,6 @@
 
 
 ;;; CAST tests
-
 (test-optimize cast-number
   "Test casting a number to other numeric types."
 
@@ -72,7 +71,6 @@
 
   (signals polymorphic-functions::no-applicable-polymorph
     (cast '(1 2 3) 'bit)))
-
 
 ;;; Copying tests
 

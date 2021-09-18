@@ -26,14 +26,14 @@
 (defpolymorph cast ((object number) (type list)) number
   (coerce object type))
 
-
+#||
 (defpolymorph-compiler-macro cast (number (member number complex real
                                                   float single-float double-float
                                                   long-float short-float ratio rational
                                                   integer fixnum bignum))
   (object type)
   `(the ,(if (constantp type) (eval type) 'number) (coerce ,object ,type)))
-
+||#
 
 
 (defpolymorph cast ((object list) (type (eql boolean))) boolean
