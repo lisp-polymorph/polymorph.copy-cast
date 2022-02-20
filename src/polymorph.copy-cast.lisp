@@ -5,7 +5,7 @@
 
 ;; TODO casts to strings -- should probably try to cast stuff to characters as well? But how?
 ;; There are at least 2 possibilities -- 1 turns into #\1 or into (code-char 1).
-(define-polymorphic-function cast (object type):overwrite t
+(define-polymorphic-function cast (object type) :overwrite t
   :documentation "Cast an object to a specified type. Type should always be a symbol.
   Non-mutating, i.e. always return a new object.")
 
@@ -107,8 +107,7 @@
         (let ((out (gensym "OUT")))
           (once-only (o)
             `(the ,formtype
-                  (let ((,out (make-array ,(if (or (constantp o-dim env)
-                                                   (and (not (eql 'cl:* o-dim)) (every (lambda (x) (constantp x env)) o-dim)))
+                  (let ((,out (make-array ,(if (constant-array-dimensions-p o-dim env)
                                                `(quote ,o-dim)
                                                `(array-dimensions ,o))
                                           :element-type ,(if (eql t o-elt) `(array-element-type ,o) `',o-elt))))
@@ -118,7 +117,7 @@
                                  (deep-copy (the ,o-elt (row-major-aref ,o ,i)))))
                     ,out))))))))
 
-(defpolymorph (deep-copy :inline t) ((o vector)) vector
+(defpolymorph (deep-copy :inline t) ((o (and vector (not simple-array)))) (and vector (not simple-array))
   ;; Could consider more options like displacements
   (let ((r (make-array (array-total-size o)
                        :element-type (array-element-type o)
@@ -129,7 +128,7 @@
                     (deep-copy (aref o i))))
     r))
 
-(defpolymorph-compiler-macro deep-copy (vector) (&whole form o &environment env)
+(defpolymorph-compiler-macro deep-copy ((and vector (not simple-array))) (&whole form o &environment env)
   (with-type-info (_ (array-type &optional o-elt o-dim) env) o
     (when-types ((array-type array)) form
       (with-type-info (o-type () env) o
@@ -163,8 +162,7 @@
       (with-type-info (o-type () env) o
         `(the ,o-type
               ,(once-only (o)
-                 `(let ((r (make-array ,(if (or (constantp o-dim env)
-                                                (and (not (eql 'cl:* o-dim)) (every (lambda (x) (constantp x env)) o-dim)))
+                 `(let ((r (make-array ,(if (constant-array-dimensions-p o-dim env)
                                             `'(,@o-dim)
                                             `(array-dimensions ,o))
                                        :element-type ,(if (eql t o-elt) `(array-element-type ,o) `',o-elt)
@@ -180,9 +178,6 @@
 ;;Cons (and lists? unsure)
 (defpolymorph deep-copy ((o cons)) cons
   (cons (deep-copy (car o)) (deep-copy (cdr o))))
-
-(defpolymorph deep-copy ((o list)) list
-  (mapcar #'deep-copy o))
 
 
 (defpolymorph-compiler-macro deep-copy (cons) (o &environment env)
@@ -201,19 +196,6 @@
     (loop :for k :being :the :hash-keys :in o
             :using (hash-value v)
           :do (setf (gethash (deep-copy k) copy) (deep-copy v)))
-    copy))
-
-
-;; Structs
-(defpolymorph (deep-copy :inline t) ((o structure-object))
-    (values structure-object &optional)
-  (let* ((type        (type-of o))
-         (slots (mop:class-slots (find-class type)))
-         (copy (copy-structure o)))
-    (loop :for slot :in slots
-          :for slot-name := (closer-mop:slot-definition-name slot)
-          :do (setf (slot-value copy slot-name)
-                    (deep-copy (slot-value copy slot-name))))
     copy))
 
 
@@ -255,35 +237,34 @@
                                       (row-major-aref ,o i))))
                     r)))))))
 
-(defpolymorph (shallow-copy :inline t) ((o vector)) vector
+(defpolymorph (shallow-copy :inline t) ((o (and vector (not simple-array)))) (and vector (not simple-array))
   ;; Could consider more options like displacements
   (let ((r (make-array (array-total-size o)
                        :element-type (array-element-type o)
                        :adjustable t
-                       :fill-pointer (fill-pointer o))))
-    (loop :for i :below (length o)
-          :do (setf (aref r i)
-                    (aref o i)))
+                       :fill-pointer (fill-pointer o)
+                       :initial-contents o)))
+          ;(loop :for i :below (length o)
+          ;      :do (setf (aref r i)
+          ;                (aref o i))))
     r))
 
-(defpolymorph-compiler-macro shallow-copy (vector) (&whole form o &environment env)
+(defpolymorph-compiler-macro shallow-copy ((and vector (not simple-array))) (&whole form o &environment env)
   (with-type-info (_ (array-type &optional o-elt o-dim) env) o
     (when-types ((array-type array)) form
       (with-type-info (o-type () env) o
-        `(the ,o-type
-              ,(once-only (o)
-                 `(let ((r (make-array ,(if (constant-array-dimensions-p o-dim env)
-                                            `'(,@o-dim)
-                                            `(array-dimensions ,o))
-                                       :element-type ,(if (eql t o-elt) `(array-element-type ,o) `',o-elt)
-                                       :adjustable t
-                                       :fill-pointer (fill-pointer ,o))))
-                    (declare (type ,o-type ,o r))
-                    (loop :for i :below (length ,o)
-                       :do (setf (aref r i)
-                                 (the ,o-elt
-                                      (aref ,o i))))
-                    r)))))))
+        (once-only (o)
+          `(the ,o-type (make-array ,(if (constant-array-dimensions-p o-dim env)
+                                         `'(,@o-dim)
+                                         `(array-dimensions ,o))
+                                    :element-type ,(if (eql t o-elt) `(array-element-type ,o) `',o-elt)
+                                    :adjustable t
+                                    :fill-pointer (fill-pointer ,o)
+                                    :initial-contents ,o)))))))
+                       ;(loop :for i :below (length ,o)
+                       ;   :do (setf (aref r i)
+                       ;             (the ,o-elt
+                       ;                  (aref ,o i)))
 
 (defpolymorph (shallow-copy :inline t) ((o array)) array
   (let ((r (make-array (array-dimensions o)
@@ -300,8 +281,7 @@
       (with-type-info (o-type () env) o
         `(the ,o-type
               ,(once-only (o)
-                 `(let ((r (make-array ,(if (or (constantp o-dim env)
-                                                (and (not (eql 'cl:* o-dim)) (every (lambda (x) (constantp x env)) o-dim)))
+                 `(let ((r (make-array ,(if (constant-array-dimensions-p o-dim env)
                                             `'(,@o-dim)
                                             `(array-dimensions ,o))
                                        :element-type ,(if (eql t o-elt) `(array-element-type ,o) `',o-elt)
@@ -324,8 +304,3 @@
   (copy-hash-table o))
 
 
-;; Structs
-;; FIXME Inheritance problem
-(defpolymorph (shallow-copy :inline t) ((o structure-object))
-    (values structure-object &optional)
-  (copy-structure o))

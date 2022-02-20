@@ -361,7 +361,7 @@
 
 
 ;;;; Structures
-
+#||
 (test-optimize shallow-copy-struct
   "Test SHALLOW-COPY on structures."
 
@@ -401,3 +401,4 @@
 
     (is (notany #'eq (custom-object-slot2 copy) (custom-object-slot2 struct))
 	"SLOT2 not deep copied")))
+||#
