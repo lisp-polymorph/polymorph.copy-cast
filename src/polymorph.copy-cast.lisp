@@ -37,8 +37,8 @@
 
 
 (defpolymorph cast ((object list) (type (eql boolean))) boolean
-              (declare (ignorable type))
-              (not (null object)))
+  (declare (ignorable type))
+  (not (null object)))
 
 
 (defpolymorph cast ((object (mod 1114112)) (type (eql character))) character
@@ -108,8 +108,8 @@
           (once-only (o)
             `(the ,formtype
                   (let ((,out (make-array ,(if (constant-array-dimensions-p o-dim env)
-                                               `(quote ,o-dim)
-                                               `(array-dimensions ,o))
+                                             `'(,@o-dim)
+                                             `(array-dimensions ,o))
                                           :element-type ,(if (eql t o-elt) `(array-element-type ,o) `',o-elt))))
                     (declare (type ,formtype ,out))
                     (loop :for ,i :below (array-total-size ,o)
@@ -122,7 +122,8 @@
   (let ((r (make-array (array-total-size o)
                        :element-type (array-element-type o)
                        :adjustable t
-                       :fill-pointer (fill-pointer o))))
+                       :fill-pointer (when (array-has-fill-pointer-p o)
+                                       (fill-pointer o)))))
     (loop :for i :below (length o)
           :do (setf (aref r i)
                     (deep-copy (aref o i))))
@@ -139,7 +140,9 @@
                                             `(array-dimensions ,o))
                                        :element-type ,(if (eql t o-elt) `(array-element-type ,o) `',o-elt)
                                        :adjustable t
-                                       :fill-pointer (fill-pointer ,o))))
+                                       :fill-pointer
+                                         (when (array-has-fill-pointer-p ,o)
+                                           (fill-pointer ,o)))))
                     (declare (type ,o-type ,o r))
                     (loop :for i :below (length ,o)
                        :do (setf (aref r i)
@@ -225,9 +228,8 @@
       (with-type-info (o-type () env) o
         `(the ,o-type
               ,(once-only (o)
-                 `(let ((r (make-array ,(if (or (constantp o-dim env)
-                                                (and (not (eql 'cl:* o-dim)) (every (lambda (x) (constantp x env)) o-dim)))
-                                            `'(,@o-dim)
+                 `(let ((r (make-array ,(if (constant-array-dimensions-p o-dim env)
+                                           `'(,@o-dim)
                                             `(array-dimensions ,o))
                                        :element-type ,(if (eql t o-elt) `(array-element-type ,o) `',o-elt))))
                     (declare (type ,o-type ,o r))
